@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 
+from astropy.coordinates import EarthLocation, SkyCoord
+from astropy import units as u
 
 # Split up rawx message into individual satellites
 def rawx_struct(rawx_msg):
@@ -78,3 +80,73 @@ def read_live_data(msg_collection):
   # Reverse order
   data_dump_str=" {} \n {}\n {}\n {}\n {}\n Time: {}, {}\n Position:{}\n {}".format(*latest_status)
   return data_dump_str
+
+
+# Get dataframe with 3D fix and time 
+def get_pos_log(msg_collection):
+  # time, lat, lon, alt
+  p_map = (2,1),(2,2),(2,4),(2,9)
+  ## Create position log
+  pos_data = []
+  for loc in p_map:
+    # Locate
+    pos_dim = [msg_collection[loc[0]][i][loc[1]] for i in range(len(msg_collection[loc[0]]))]
+    # Split
+    pos_dim = [pos_dim[i].split('=')[1] for i in range(len(pos_dim))]
+    pos_data.append(pos_dim)
+  for i in range(len(pos_data[0])):
+    # Process (time)
+      time=pos_data[0][i].split(':')
+      time= int(time[0])*3600 + int(time[1])*60 + float(time[2])
+      pos_data[0][i] = round(time)
+  # Transpose
+  pos_data_np =np.transpose(np.array(pos_data))
+  # Dataframe
+  coloum_header = ["Time", "Lat","Lon","Alt"]
+  pos_df=pd.DataFrame(pos_data_np,columns=coloum_header)
+  # Filter (valid position)
+  pos_df=pos_df[pos_df['Lat']!=''].reset_index(drop=True)
+  # Float
+  pos_df = pos_df.astype(float)
+  pos_df = pos_df.astype({'Time': int})
+  return pos_df
+
+def auth_positions(pos_df,osnma_instance):
+  auth_times = np.array(osnma_instance.auth_times,dtype=float) %(3600*24)
+  # Find first timestamp to setup object
+  authenticated_pos = pos_df['Time']==auth_times[0]-29 # Mark the position at start of auth sub-frame
+  for time_step in auth_times[1:]:
+    # Only check right second of day (TEMP)
+    authenticated_pos += pos_df['Time']==time_step-29 # Mark the position at start of auth sub-frame
+  auth_pos_df = pos_df[authenticated_pos]
+  if len(auth_pos_df)==len(auth_times):
+    auth_pos_df = auth_pos_df.assign(Time=osnma_instance.auth_times)
+  # Calculate geodesic distance between two coordinates using WGS84 ellipsoid
+  location_points = []
+  for row in auth_pos_df.iterrows():
+    # Convert to Earth position (XYZ) on ‘WGS84’ 
+    earth_pos = EarthLocation.from_geodetic(row[1]['Lon'],row[1]['Lat'],row[1]['Alt'])
+    ellipsoid_radius = ecef_pos = earth_pos.value
+    # Take magnitude 
+    ellipsoid_radius = np.linalg.norm([*ecef_pos])
+    # Create 3D sky points with auth positions 
+    point = SkyCoord(
+      ra=row[1]['Lon']*u.degree,
+      dec=row[1]['Lat']*u.degree,
+      distance=ellipsoid_radius*u.meter, frame='icrs')
+    location_points.append(point)
+  # Calculate 3D seperation between points in space
+  travelled_distance = [location_points[i].separation_3d(location_points[i-1]).value for i in range(1,len(location_points))]
+  time_to_auth = [auth_pos_df.reset_index(drop=True)['Time'][i] - auth_pos_df.reset_index(drop=True)['Time'][i-1] for i in range(1,len(auth_pos_df))]
+
+  # Add 0 for first position/time
+  travelled_distance.insert(0,0)
+  time_to_auth.insert(0,0)
+
+  # Add derived parameters
+  auth_pos_df.insert(4,"Travelled [m]",travelled_distance)
+  auth_pos_df.insert(5,"Duration [sec]",time_to_auth)
+  # Calculate speed in km/h
+  velocity= (auth_pos_df["Travelled [m]"]/auth_pos_df["Duration [sec]"])*3.6
+  auth_pos_df.insert(6,"Velocity [km/h]",velocity)
+  return auth_pos_df
