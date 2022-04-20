@@ -5,9 +5,7 @@ For MSc thesis GNSS Safety and Handling
 
 Tested with Ublox ZED-F9P
 
-
-![osnma_output_0](https://user-images.githubusercontent.com/71280183/164247229-17dd0a64-4b11-4755-bfe2-3d575f7744d7.PNG)
-
+![osnma_output_1](https://user-images.githubusercontent.com/71280183/164247926-973341e0-6692-4035-9cdd-c0f4d72c3d19.PNG)
 
 
 Will write the following configurations to RAM 
