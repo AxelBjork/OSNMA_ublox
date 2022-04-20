@@ -57,7 +57,7 @@ SFRBX DATA - OSNMA
   - Convert page bits according to Galileo ICD
   - Split pages by satellite PRN
   - Filter satellite which are actively transmitting OSNMA
-  - Locate and store DSM-KROTO and TESLA root key, digital signatures
+  - Locate and store DSM-KROOT and TESLA root key, digital signatures
   - Assemble hash message and authenticate using ECDSA
   - Authenticate chain root key
   - Authenticate navigation tags
