@@ -5,6 +5,11 @@ For MSc thesis GNSS Safety and Handling
 
 Tested with Ublox ZED-F9P
 
+
+![osnma_output_0](https://user-images.githubusercontent.com/71280183/164247229-17dd0a64-4b11-4755-bfe2-3d575f7744d7.PNG)
+
+
+
 Will write the following configurations to RAM 
 
 • 42, CFG-NMEA-PROTVER
@@ -66,5 +71,6 @@ TTFAF benchmarks
 
 Time Mangement with NTP request
 
+![proof_of_concept_mk2](https://user-images.githubusercontent.com/71280183/164247329-40754562-aafd-4764-b31a-71fb9a44a156.png)
 
 
