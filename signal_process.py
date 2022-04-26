@@ -84,31 +84,31 @@ def read_live_data(msg_collection):
 
 # Get dataframe with 3D fix and time 
 def get_pos_log(msg_collection):
-  # time, lat, lon, alt
-  p_map = (2,1),(2,2),(2,4),(2,9)
-  ## Create position log
-  pos_data = []
+  raw_metrics = []
+  # Message index, parameter index
+  p_map = [(2,1),(2,2),(2,4),(2,9)]
   for loc in p_map:
-    # Locate
-    pos_dim = [msg_collection[loc[0]][i][loc[1]] for i in range(len(msg_collection[loc[0]]))]
-    # Split
-    pos_dim = [pos_dim[i].split('=')[1] for i in range(len(pos_dim))]
-    pos_data.append(pos_dim)
-  for i in range(len(pos_data[0])):
-    # Process (time)
-      time=pos_data[0][i].split(':')
-      time= int(time[0])*3600 + int(time[1])*60 + float(time[2])
-      pos_data[0][i] = round(time)
+    # Extract raw param from message collection
+    raw_param = [msg_collection[loc[0]][i][loc[1]] for i in range(len(msg_collection[loc[0]]))]
+    #raw_param = raw_param[-400:]
+    # Add to parsed metrics
+    raw_metrics.append(raw_param)
+  pos_data = []
+  for metric in raw_metrics[1:]:
+    # Remove ')>' if last metric in msg
+    metric = [data_row.split(')')[0] for data_row in metric]
+    metric_data = [float(data_row.split('=')[1]) if data_row.split('=')[1] !='' else None for data_row in metric]
+    #metric_data = metric[i].split('=')[1]
+    pos_data.append(metric_data)
+  # Convert H:M:s to second of day, H*60^2 + M*60^1 + s*60^0
+  pos_time = [sum(int(x) * 60 ** i for i, x in enumerate(reversed(data_row.split('=')[1].split(':')))) for data_row in raw_metrics[0]]
+  pos_data.insert(0,pos_time)
   # Transpose
   pos_data_np =np.transpose(np.array(pos_data))
-  # Dataframe
-  coloum_header = ["Time", "Lat","Lon","Alt"]
+  coloum_header= ['Time of Day[Sec]','Lat',"Lon","Alt"]
   pos_df=pd.DataFrame(pos_data_np,columns=coloum_header)
   # Filter (valid position)
   pos_df=pos_df[pos_df['Lat']!=''].reset_index(drop=True)
-  # Float
-  pos_df = pos_df.astype(float)
-  pos_df = pos_df.astype({'Time': int})
   return pos_df
 
 def auth_positions(pos_df,osnma_instance):
