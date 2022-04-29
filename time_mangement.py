@@ -14,8 +14,8 @@ def get_gnss_time(gal_time_msg,offset = 0):
 def get_ntp_time(offset = 0):
   # reference time (in seconds since 1900-01-01 00:00:00)
   TIME1970 = 2208988800 # 1970-01-01 00:00:00
-  # List of common NTP servers
-  hosts = ['segotn006.vcn.ds.volvo.net','time.windows.com','0.de.pool.ntp.org','europe.pool.ntp.org']
+  # List of common NTP servers 
+  hosts = ['time.windows.com','0.de.pool.ntp.org','europe.pool.ntp.org']
   # Setup server
   client = socket.socket( socket.AF_INET, socket.SOCK_DGRAM)
   # Set 2 second timeout limit
